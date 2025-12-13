@@ -21,6 +21,5 @@ export function createAssistantUIMessageStream(options: {
       console.error(error);
     },
   });
-
   return result.toUIMessageStream();
 }
