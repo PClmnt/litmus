@@ -1,0 +1,2 @@
+- This is a project using the OpenTUI library for building rich terminal interfaces. The OpenTUI project has been cloned into this repo at ./opentui.
+- Please use the OpenTUI repo for any documentation look ups and to see examples etc.
