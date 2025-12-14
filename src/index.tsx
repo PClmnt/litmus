@@ -1,9 +1,16 @@
 import { createCliRenderer, TextAttributes } from "@opentui/core";
 import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
-import { readUIMessageStream } from "ai";
+import {
+  isTextUIPart,
+  readUIMessageStream,
+  type UIDataTypes,
+  type UIMessagePart,
+  type UITools,
+} from "ai";
 import { useCallback, useState } from "react";
 
 import { createAssistantUIMessageStream } from "./ai";
+import { Detail } from "./detail";
 
 // Popular OpenRouter models for benchmarking
 const AVAILABLE_MODELS = [
@@ -28,7 +35,7 @@ interface BenchmarkModel {
   id: string;
   model: string;
   modelName: string;
-  output: string;
+  output: UIMessagePart<UIDataTypes, UITools>[];
   status: "idle" | "streaming" | "done" | "error";
   error?: string;
   startTime?: number;
@@ -40,11 +47,13 @@ function App() {
   const [prompt, setPrompt] = useState("Write a haiku about coding");
   const [selectedModels, setSelectedModels] = useState<BenchmarkModel[]>([]);
   const [focusedElement, setFocusedElement] = useState<
-    "prompt" | "models" | "actions"
+    "prompt" | "models" | "actions" | "output"
   >("models");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [actionIndex, setActionIndex] = useState(0);
 
+  const [actionIndex, setActionIndex] = useState(0);
+  const [selectedModelIndex, setSelectedModelIndex] = useState(0);
+  const [detailVisible, setDetailVisible] = useState(false);
   const addModel = useCallback(
     (modelValue: string) => {
       const modelDef = AVAILABLE_MODELS.find((m) => m.value === modelValue);
@@ -59,14 +68,10 @@ function App() {
           id: `${modelValue}-${Date.now()}`,
           model: modelValue,
           modelName: modelDef.name,
-          output: "",
+          output: [{ type: "text", text: "" }],
           status: "idle",
         },
       ]);
-
-      // Auto-focus on Generate button after adding a model
-      setFocusedElement("actions");
-      setActionIndex(0);
     },
     [selectedModels]
   );
@@ -90,7 +95,7 @@ function App() {
           ? {
               ...m,
               status: "streaming",
-              output: "",
+              output: [{ type: "text", text: "" }],
               startTime,
               error: undefined,
             }
@@ -132,8 +137,26 @@ function App() {
           .map((part) => part.text)
           .join("");
 
+        const reasoning = uiMessage.parts
+          .filter(
+            (part): part is { type: "reasoning"; text: string } =>
+              part.type === "reasoning"
+          )
+          .map((part) => part.text)
+          .join("");
+
         setSelectedModels((prev) =>
-          prev.map((m) => (m.id === model.id ? { ...m, output: text } : m))
+          prev.map((m) =>
+            m.id === model.id
+              ? {
+                  ...m,
+                  output: [
+                    { type: "text", text },
+                    { type: "reasoning", text: reasoning || "" },
+                  ],
+                }
+              : m
+          )
         );
       }
 
@@ -197,6 +220,7 @@ function App() {
       setFocusedElement((prev) => {
         if (prev === "prompt") return "models";
         if (prev === "models") return "actions";
+        if (prev === "actions") return "output";
         return "prompt";
       });
       return;
@@ -211,6 +235,16 @@ function App() {
       } else if (key.name === "return" || key.name === "linefeed") {
         if (actionIndex === 0) runBenchmark();
         else if (actionIndex === 1) clearAll();
+      }
+    }
+
+    if (focusedElement === "output") {
+      if (key.name === "left") {
+        setSelectedModelIndex((prev) => Math.max(0, prev - 1));
+      } else if (key.name === "right") {
+        setSelectedModelIndex((prev) => Math.max(0, prev + 1));
+      } else if (key.name === "return") {
+        setDetailVisible(true);
       }
     }
 
@@ -259,10 +293,12 @@ function App() {
 
   const actions = ["▶ Generate", "✕ Clear"];
 
-  return (
+  return detailVisible ? (
+    <Detail toggleDetail={() => setDetailVisible(false)} />
+  ) : (
     <box flexDirection="column" flexGrow={1} padding={1}>
       {/* Header */}
-      <box justifyContent="center" marginBottom={1}>
+      <box justifyContent="center" flexDirection="row" marginBottom={1}>
         <ascii-font font="tiny" text="TUI Bench" />
       </box>
 
@@ -359,7 +395,7 @@ function App() {
             </text>
           </box>
         ) : (
-          selectedModels.map((model) => (
+          selectedModels.map((model, i) => (
             <box
               key={model.id}
               borderStyle="rounded"
@@ -367,6 +403,18 @@ function App() {
               width={40}
               height={20}
               flexDirection="column"
+              onKeyDown={(key) => {
+                console.log("SOME NONSENSE", key);
+                if (key.name === "return") {
+                  console.log("return");
+                  setDetailVisible(true);
+                }
+              }}
+              backgroundColor={
+                focusedElement === "output" && selectedModelIndex === i
+                  ? "#2a4a6a"
+                  : undefined
+              }
             >
               {/* Model header */}
               <box
@@ -387,7 +435,7 @@ function App() {
                     ? `Error: ${model.error}`
                     : model.status === "idle"
                     ? "Ready — press 'g' or Enter on Generate"
-                    : model.output || ""}
+                    : model.output.find(isTextUIPart)?.text}
                 </text>
               </scrollbox>
             </box>
