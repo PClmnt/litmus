@@ -6,7 +6,9 @@ export function Detail({ toggleDetail }: { toggleDetail: () => void }) {
     <box>
       <box flexDirection="row" alignItems="center" flexGrow={1} padding={1}>
         <box>
-          <text>Detail</text>
+          <button onClick={toggleDetail}>
+            <text>Detail</text>
+          </button>
         </box>
       </box>
     </box>

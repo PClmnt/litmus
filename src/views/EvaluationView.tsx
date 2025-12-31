@@ -1,0 +1,271 @@
+// Evaluation view - display and run LLM-as-judge evaluations
+import { useState, useCallback } from "react";
+import { useKeyboard } from "@opentui/react";
+import { TextAttributes } from "@opentui/core";
+import { getDatabase } from "../db";
+import { getResponsesForRun } from "../db/queries/responses";
+import { getRun } from "../db/queries/runs";
+import {
+  createEvaluation,
+  createEvaluationScore,
+  getLatestEvaluationForRun,
+  type EvaluationWithScores,
+} from "../db/queries/evaluations";
+import {
+  evaluateResponses,
+  JUDGE_MODELS,
+  getScoreColor,
+  formatScoreDisplay,
+  type EvaluationResult,
+} from "../evaluation";
+import type { ModelResponse } from "../types";
+
+interface EvaluationViewProps {
+  runId: number | null;
+  focused: boolean;
+  onBack?: () => void;
+}
+
+export function EvaluationView({
+  runId,
+  focused,
+  onBack,
+}: EvaluationViewProps) {
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState<EvaluationWithScores | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [selectedJudgeIndex, setSelectedJudgeIndex] = useState(0);
+  const [promptText, setPromptText] = useState<string>("");
+  const [responses, setResponses] = useState<ModelResponse[]>([]);
+
+  // Load existing evaluation if available
+  useState(() => {
+    if (runId) {
+      const db = getDatabase();
+      const run = getRun(db, runId);
+      if (run) {
+        setPromptText(run.prompt_text);
+        setResponses(getResponsesForRun(db, runId));
+        const existingEval = getLatestEvaluationForRun(db, runId);
+        if (existingEval) {
+          setEvaluation(existingEval);
+        }
+      }
+    }
+  });
+
+  const runEvaluation = useCallback(async () => {
+    if (!runId || isEvaluating || responses.length === 0) return;
+
+    setIsEvaluating(true);
+    setError(null);
+
+    try {
+      const selectedJudge = JUDGE_MODELS[selectedJudgeIndex];
+      if (!selectedJudge) {
+        throw new Error("No judge model selected");
+      }
+      const judgeModel = selectedJudge.value;
+      const db = getDatabase();
+
+      // Prepare model outputs for evaluation
+      const modelOutputs = responses.map((r) => ({
+        modelId: r.model_id,
+        modelName: r.model_name,
+        output: r.output_text || "",
+        toolCalls: r.tool_calls ? JSON.parse(r.tool_calls) : undefined,
+      }));
+
+      // Check if any models used tools
+      const hasToolUse = modelOutputs.some((m) => m.toolCalls?.length > 0);
+
+      // Run evaluation
+      const result = await evaluateResponses(promptText, modelOutputs, {
+        judgeModel,
+        includeToolUseCriteria: hasToolUse,
+      });
+
+      // Save evaluation to database
+      const evalId = createEvaluation(db, {
+        run_id: runId,
+        judge_model: judgeModel,
+        evaluation_prompt: promptText,
+      });
+
+      // Save scores
+      for (const evalResult of result.evaluations) {
+        const response = responses.find(
+          (r) => r.model_id === evalResult.modelId
+        );
+        if (response) {
+          createEvaluationScore(db, {
+            evaluation_id: evalId,
+            model_response_id: response.id,
+            score: evalResult.overallScore,
+            reasoning: evalResult.reasoning,
+            criteria_scores: evalResult.criteriaScores,
+            raw_response: result.rawResponse,
+          });
+        }
+      }
+
+      // Reload evaluation
+      const newEval = getLatestEvaluationForRun(db, runId);
+      setEvaluation(newEval);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evaluation failed");
+    } finally {
+      setIsEvaluating(false);
+    }
+  }, [runId, isEvaluating, responses, promptText, selectedJudgeIndex]);
+
+  useKeyboard((key) => {
+    if (!focused) return;
+
+    if (key.name === "escape" || key.name === "q") {
+      onBack?.();
+      return;
+    }
+
+    if (key.name === "e" && !isEvaluating) {
+      runEvaluation();
+      return;
+    }
+
+    if (key.name === "left") {
+      setSelectedJudgeIndex((prev) => Math.max(0, prev - 1));
+    } else if (key.name === "right") {
+      setSelectedJudgeIndex((prev) =>
+        Math.min(JUDGE_MODELS.length - 1, prev + 1)
+      );
+    }
+  });
+
+  if (!runId) {
+    return (
+      <box flexGrow={1} justifyContent="center" alignItems="center">
+        <text attributes={TextAttributes.DIM}>
+          No run selected. Go to History and select a run to evaluate.
+        </text>
+      </box>
+    );
+  }
+
+  return (
+    <box flexDirection="column" flexGrow={1}>
+      {/* Header */}
+      <box marginBottom={1}>
+        <text style={{ fg: "#6699CC" }}>Evaluation for Run #{runId}</text>
+      </box>
+
+      {/* Prompt */}
+      <box borderStyle="rounded" marginBottom={1} padding={1} title="Prompt">
+        <text wrapMode="word">{promptText || "Loading..."}</text>
+      </box>
+
+      {/* Judge Selection */}
+      <box flexDirection="row" gap={1} marginBottom={1}>
+        <text>Judge Model:</text>
+        {JUDGE_MODELS.map((model, i) => (
+          <box
+            key={model.value}
+            padding={1}
+            borderStyle={i === selectedJudgeIndex ? "double" : "single"}
+            backgroundColor={i === selectedJudgeIndex ? "#2a4a6a" : undefined}
+          >
+            <text
+              style={{ fg: i === selectedJudgeIndex ? "#FFFFFF" : "#888888" }}
+            >
+              {model.name}
+            </text>
+          </box>
+        ))}
+      </box>
+
+      {/* Status */}
+      <box marginBottom={1}>
+        {isEvaluating ? (
+          <text style={{ fg: "#FFA500" }}>
+            Evaluating with {JUDGE_MODELS[selectedJudgeIndex]?.name ?? "judge"}
+            ...
+          </text>
+        ) : error ? (
+          <text style={{ fg: "#FF0000" }}>Error: {error}</text>
+        ) : (
+          <text attributes={TextAttributes.DIM}>
+            Press 'e' to run evaluation | Left/Right: select judge | q: back
+          </text>
+        )}
+      </box>
+
+      {/* Results */}
+      {evaluation && (
+        <box
+          borderStyle="rounded"
+          flexGrow={1}
+          flexDirection="column"
+          title="Results"
+        >
+          {/* Ranking Header */}
+          <box flexDirection="row" padding={1} backgroundColor="#1a1a2e">
+            <text style={{ fg: "#6699CC" }}>
+              {"Rank".padEnd(6)}
+              {"Model".padEnd(25)}
+              {"Score".padEnd(10)}
+              {"Reasoning"}
+            </text>
+          </box>
+
+          {/* Scores */}
+          <scrollbox flexGrow={1}>
+            {evaluation.scores.map((score, index) => (
+              <box
+                key={score.id}
+                flexDirection="column"
+                padding={1}
+                borderStyle="single"
+                borderColor="#333"
+              >
+                <box flexDirection="row">
+                  <text style={{ fg: "#FFFFFF" }}>
+                    {String(index + 1).padEnd(6)}
+                    {score.model_name.padEnd(25)}
+                  </text>
+                  <text style={{ fg: getScoreColor(score.score) }}>
+                    {formatScoreDisplay(score.score).padEnd(10)}
+                  </text>
+                </box>
+                {score.reasoning && (
+                  <box flexDirection="column" marginTop={1}>
+                    <text style={{ fg: "#AAAAAA" }} wrapMode="word">
+                      {score.reasoning}
+                    </text>
+                  </box>
+                )}
+              </box>
+            ))}
+          </scrollbox>
+        </box>
+      )}
+
+      {!evaluation && !isEvaluating && responses.length > 0 && (
+        <box
+          borderStyle="rounded"
+          flexGrow={1}
+          justifyContent="center"
+          alignItems="center"
+          flexDirection="column"
+        >
+          <text attributes={TextAttributes.DIM}>
+            {responses.length} model response(s) ready for evaluation
+          </text>
+          <text attributes={TextAttributes.DIM}>
+            Press 'e' to run evaluation
+          </text>
+        </box>
+      )}
+    </box>
+  );
+}
