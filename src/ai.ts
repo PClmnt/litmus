@@ -14,6 +14,10 @@ export interface StreamOptions {
   abortSignal?: AbortSignal;
   tools?: Record<string, Tool>;
   config?: ModelConfig;
+  reasoning?: {
+    enabled: boolean;
+    maxTokens?: number;
+  };
 }
 
 export interface StreamResult {
@@ -41,6 +45,16 @@ export function createAssistantUIMessageStream(
     stopWhen: options.tools ? stepCountIs(5) : undefined,
     temperature: options.config?.temperature ?? 0.7,
     maxOutputTokens: options.config?.maxTokens ?? 2048,
+    providerOptions: options.reasoning?.enabled
+      ? {
+          openrouter: {
+            include_reasoning: true,
+            reasoning: {
+              max_tokens: options.reasoning.maxTokens ?? 1024,
+            },
+          },
+        }
+      : undefined,
     onError: ({ error }) => {
       console.error(error);
     },

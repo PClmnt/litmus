@@ -7,7 +7,7 @@ import {
   isToolUIPart,
   readUIMessageStream,
 } from "ai";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createAssistantUIMessageStream } from "../ai";
 import { getEnabledTools, TOOL_DESCRIPTIONS, getAllToolNames } from "../tools";
@@ -37,6 +37,7 @@ interface ExtendedBenchmarkModel extends BenchmarkModel {
   toolCalls: ToolCall[];
   usage?: UsageData;
   finishReason?: string;
+  reasoningEnabled: boolean;
 }
 
 interface BenchmarkViewProps {
@@ -64,6 +65,62 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
 
   const allToolNames = getAllToolNames();
 
+  const [openRouterSupportedParameters, setOpenRouterSupportedParameters] =
+    useState<Map<string, Set<string>> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadModelCapabilities = async () => {
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/models");
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          data?: Array<{ id?: string; supported_parameters?: string[] }>;
+        };
+
+        const map = new Map<string, Set<string>>();
+        for (const model of json.data ?? []) {
+          if (!model?.id) continue;
+          map.set(model.id, new Set(model.supported_parameters ?? []));
+        }
+
+        if (!cancelled) setOpenRouterSupportedParameters(map);
+      } catch (error) {
+        console.error("Failed to load OpenRouter model capabilities:", error);
+      }
+    };
+
+    loadModelCapabilities();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const modelSupportsReasoning = useCallback(
+    (modelId: string) => {
+      const supported = openRouterSupportedParameters?.get(modelId);
+      if (!supported) return true; // unknown; allow toggle rather than hiding
+      return supported.has("include_reasoning") || supported.has("reasoning");
+    },
+    [openRouterSupportedParameters]
+  );
+
+  const modelSupportsReasoningEffort = useCallback(
+    (modelId: string) => {
+      const supported = openRouterSupportedParameters?.get(modelId);
+      if (!supported) return false;
+      return supported.has("reasoning_effort");
+    },
+    [openRouterSupportedParameters]
+  );
+
+  const reasoningHelpText = useMemo(() => {
+    // Keeping this simple: we just advertise the toggle when we know it’s supported
+    // (or when capabilities are unknown).
+    return "r: toggle reasoning";
+  }, []);
+
   const toggleTool = useCallback((toolName: string) => {
     setEnabledTools((prev) =>
       prev.includes(toolName)
@@ -88,6 +145,7 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
           output: [{ type: "text", text: "" }],
           toolCalls: [],
           status: "idle",
+          reasoningEnabled: false,
         },
       ]);
     },
@@ -135,6 +193,10 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
         abortSignal: controller.signal,
         model: model.model,
         tools,
+        reasoning:
+          model.reasoningEnabled && modelSupportsReasoning(model.model)
+            ? { enabled: true }
+            : undefined,
       });
 
       let accumulatedToolCalls: ToolCall[] = [];
@@ -313,6 +375,23 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
       return;
     }
 
+    if (
+      key.name === "r" &&
+      focusedElement === "output" &&
+      !isStreaming &&
+      selectedModels.length > 0
+    ) {
+      const current = selectedModels[selectedModelIndex];
+      if (!current) return;
+      if (!modelSupportsReasoning(current.model)) return;
+      setSelectedModels((prev) =>
+        prev.map((m) =>
+          m.id === current.id ? { ...m, reasoningEnabled: !m.reasoningEnabled } : m
+        )
+      );
+      return;
+    }
+
     if (focusedElement === "tools") {
       if (key.name === "left") {
         setToolIndex((prev) => Math.max(0, prev - 1));
@@ -484,7 +563,7 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
             {getStatusMessage()}
           </text>
           <text attributes={TextAttributes.DIM}>
-            Tab: focus | g: generate | d: remove | Enter: view details | Ctrl+K: console
+            Tab: focus | g: generate | d: remove | Enter: view details | {reasoningHelpText} | Ctrl+K: console
           </text>
 
           {/* Action Buttons */}
@@ -557,6 +636,15 @@ export function BenchmarkView({ focused, onRunComplete, onModelSelect }: Benchma
                   {model.modelName}
                   {model.status === "done" &&
                     ` (${formatDuration(model.startTime, model.endTime)})`}
+                </text>
+                <text style={{ fg: "#888888" }}>
+                  Reasoning:{" "}
+                  {modelSupportsReasoning(model.model)
+                    ? model.reasoningEnabled
+                      ? "On"
+                      : "Off"
+                    : "N/A"}
+                  {modelSupportsReasoningEffort(model.model) ? " (effort supported)" : ""}
                 </text>
                 {model.status === "done" && model.usage && (
                   <text style={{ fg: "#888888" }}>
