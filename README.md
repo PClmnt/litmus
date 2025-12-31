@@ -1,3 +1,5 @@
+                  <p align="center">
+                  <pre>
                   ___  ___   ___               ___         ___   ___ 
   .'|        .'| `._|=|   |=|_.'   .'|\/|`.   |   | |`.   |   |=|_.' 
 .'  |      .'  |      |   |      .'  |  |  `. |   | |  `. `.  |      
@@ -5,7 +7,10 @@
 |   |  ___ |   |      `.  |      |   |  |   | `.  | |   |  ___  |  `.
 |___|=|_.' |___|        `.|      |___|  |___|   `.|=|___|  `._|=|___|
                                                                      
-A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, evaluate their tool usage capabilities, and analyze results with automated LLM-as-judge scoring.
+                  </pre>
+                  </p>
+
+A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, evaluate their tool usage capabilities, and analyze results with automated [...]
 
 ![](images/main.png)
 
