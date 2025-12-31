@@ -12,6 +12,19 @@ export interface ToolCall {
   result?: unknown;
 }
 
+export interface UsageData {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  inputTokenDetails?: {
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+  };
+  outputTokenDetails?: {
+    reasoningTokens?: number;
+  };
+}
+
 // Database entity types
 export interface Run {
   id: number;
@@ -84,6 +97,8 @@ export interface BenchmarkModel {
   error?: string;
   startTime?: number;
   endTime?: number;
+  usage?: UsageData;
+  finishReason?: string;
 }
 
 // Available model definition

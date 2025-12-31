@@ -8,17 +8,37 @@ import { BenchmarkView } from "./views/BenchmarkView";
 import { HistoryView } from "./views/HistoryView";
 import { EvaluationView } from "./views/EvaluationView";
 import { SettingsView } from "./views/SettingsView";
-import type { ViewName } from "./types";
+import { OutputDetailView } from "./views/OutputDetailView";
+import type { ViewName, BenchmarkModel, ToolCall } from "./types";
+
+interface SelectedModelData {
+  model: BenchmarkModel & { toolCalls: ToolCall[] };
+  prompt: string;
+}
 
 function App() {
   const renderer = useRenderer();
   const [currentView, setCurrentView] = useState<ViewName>("benchmark");
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [navigationFocused, setNavigationFocused] = useState(false);
+  const [selectedModelData, setSelectedModelData] =
+    useState<SelectedModelData | null>(null);
 
   const handleViewChange = useCallback((view: ViewName) => {
     setCurrentView(view);
     setNavigationFocused(false);
+    setSelectedModelData(null);
+  }, []);
+
+  const handleModelSelect = useCallback(
+    (model: BenchmarkModel & { toolCalls: ToolCall[] }, prompt: string) => {
+      setSelectedModelData({ model, prompt });
+    },
+    []
+  );
+
+  const handleBackFromDetail = useCallback(() => {
+    setSelectedModelData(null);
   }, []);
 
   const handleRunSelect = useCallback((runId: number) => {
@@ -46,19 +66,34 @@ function App() {
 
     // Escape to go back or focus navigation
     if (key.name === "escape") {
-      if (currentView !== "benchmark") {
+      if (selectedModelData) {
+        setSelectedModelData(null);
+      } else if (currentView !== "benchmark") {
         setNavigationFocused(true);
       }
     }
   });
 
   const renderView = () => {
+    // Show detail view if a model is selected during benchmark
+    if (selectedModelData && currentView === "benchmark") {
+      return (
+        <OutputDetailView
+          model={selectedModelData.model}
+          prompt={selectedModelData.prompt}
+          focused={true}
+          onBack={handleBackFromDetail}
+        />
+      );
+    }
+
     switch (currentView) {
       case "benchmark":
         return (
           <BenchmarkView
             focused={!navigationFocused}
             onRunComplete={handleRunComplete}
+            onModelSelect={handleModelSelect}
           />
         );
       case "history":

@@ -12,7 +12,7 @@ import { useCallback, useState } from "react";
 import { createAssistantUIMessageStream } from "../ai";
 import { getEnabledTools, TOOL_DESCRIPTIONS, getAllToolNames } from "../tools";
 import { getDatabase, createRun, createResponse } from "../db";
-import type { ToolCall, BenchmarkModel } from "../types";
+import type { ToolCall, BenchmarkModel, UsageData } from "../types";
 
 // Popular OpenRouter models for benchmarking
 const AVAILABLE_MODELS = [
@@ -35,14 +35,17 @@ const AVAILABLE_MODELS = [
 
 interface ExtendedBenchmarkModel extends BenchmarkModel {
   toolCalls: ToolCall[];
+  usage?: UsageData;
+  finishReason?: string;
 }
 
 interface BenchmarkViewProps {
   focused: boolean;
   onRunComplete?: (runId: number) => void;
+  onModelSelect?: (model: ExtendedBenchmarkModel, prompt: string) => void;
 }
 
-export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
+export function BenchmarkView({ focused, onRunComplete, onModelSelect }: BenchmarkViewProps) {
   const renderer = useRenderer();
   const [prompt, setPrompt] = useState("Write a haiku about coding");
   const [selectedModels, setSelectedModels] = useState<
@@ -117,6 +120,8 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
               toolCalls: [],
               startTime,
               error: undefined,
+              usage: undefined,
+              finishReason: undefined,
             }
           : m
       )
@@ -125,7 +130,7 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
     try {
       const tools =
         enabledTools.length > 0 ? getEnabledTools(enabledTools) : undefined;
-      const stream = createAssistantUIMessageStream({
+      const streamResult = createAssistantUIMessageStream({
         prompt: promptText,
         abortSignal: controller.signal,
         model: model.model,
@@ -135,7 +140,7 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
       let accumulatedToolCalls: ToolCall[] = [];
 
       for await (const uiMessage of readUIMessageStream({
-        stream,
+        stream: streamResult.stream,
         onError: (err) => {
           setSelectedModels((prev) =>
             prev.map((m) =>
@@ -170,7 +175,6 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
         }));
 
         accumulatedToolCalls = [...accumulatedToolCalls, ...tools];
-        console.log(accumulatedToolCalls);
         setSelectedModels((prev) =>
           prev.map((m) =>
             m.id === model.id
@@ -187,11 +191,17 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
         );
       }
 
+      // Get usage and finish reason after streaming completes
+      const [usage, finishReason] = await Promise.all([
+        streamResult.getUsage(),
+        streamResult.getFinishReason(),
+      ]);
+
       const endTime = Date.now();
       setSelectedModels((prev) =>
         prev.map((m) =>
           m.id === model.id && m.status !== "error"
-            ? { ...m, status: "done", endTime }
+            ? { ...m, status: "done", endTime, usage, finishReason }
             : m
         )
       );
@@ -201,6 +211,8 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
         startTime,
         endTime,
         toolCalls: accumulatedToolCalls,
+        usage,
+        finishReason,
       };
     } catch (err) {
       if (controller.signal.aborted) return { success: false };
@@ -331,7 +343,17 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
       if (key.name === "left") {
         setSelectedModelIndex((prev) => Math.max(0, prev - 1));
       } else if (key.name === "right") {
-        setSelectedModelIndex((prev) => Math.max(0, prev + 1));
+        setSelectedModelIndex((prev) =>
+          Math.min(selectedModels.length - 1, prev + 1)
+        );
+      } else if (
+        (key.name === "return" || key.name === "linefeed") &&
+        selectedModels[selectedModelIndex]?.status === "done"
+      ) {
+        const model = selectedModels[selectedModelIndex];
+        if (model && onModelSelect) {
+          onModelSelect(model, prompt);
+        }
       }
     }
 
@@ -462,7 +484,7 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
             {getStatusMessage()}
           </text>
           <text attributes={TextAttributes.DIM}>
-            Tab: focus | g: generate | d: remove | Ctrl+K: console
+            Tab: focus | g: generate | d: remove | Enter: view details | Ctrl+K: console
           </text>
 
           {/* Action Buttons */}
@@ -529,12 +551,22 @@ export function BenchmarkView({ focused, onRunComplete }: BenchmarkViewProps) {
               <box
                 backgroundColor={getStatusColor(model.status) + "33"}
                 padding={1}
+                flexDirection="column"
               >
                 <text style={{ fg: getStatusColor(model.status) }}>
                   {model.modelName}
                   {model.status === "done" &&
                     ` (${formatDuration(model.startTime, model.endTime)})`}
                 </text>
+                {model.status === "done" && model.usage && (
+                  <text style={{ fg: "#888888" }}>
+                    {model.usage.totalTokens
+                      ? `${model.usage.totalTokens} tokens`
+                      : model.usage.inputTokens && model.usage.outputTokens
+                      ? `${model.usage.inputTokens}/${model.usage.outputTokens} tokens`
+                      : ""}
+                  </text>
+                )}
               </box>
 
               {/* Tool calls display */}

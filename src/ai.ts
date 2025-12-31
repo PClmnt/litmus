@@ -4,10 +4,9 @@ import {
   streamText,
   type UIMessageChunk,
   type Tool,
-  wrapLanguageModel,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { ModelConfig } from "./types";
+import type { ModelConfig, UsageData } from "./types";
 
 export interface StreamOptions {
   model: string;
@@ -17,9 +16,15 @@ export interface StreamOptions {
   config?: ModelConfig;
 }
 
+export interface StreamResult {
+  stream: ReadableStream<UIMessageChunk>;
+  getUsage: () => Promise<UsageData | undefined>;
+  getFinishReason: () => Promise<string | undefined>;
+}
+
 export function createAssistantUIMessageStream(
   options: StreamOptions
-): ReadableStream<UIMessageChunk> {
+): StreamResult {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENROUTER_API_KEY");
@@ -41,5 +46,33 @@ export function createAssistantUIMessageStream(
     },
   });
 
-  return result.toUIMessageStream();
+  return {
+    stream: result.toUIMessageStream(),
+    getUsage: async () => {
+      try {
+        const usage = await result.usage;
+        return {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          totalTokens: usage.totalTokens,
+          inputTokenDetails: usage.inputTokenDetails ? {
+            cacheReadTokens: usage.inputTokenDetails.cacheReadTokens,
+            cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens,
+          } : undefined,
+          outputTokenDetails: usage.outputTokenDetails ? {
+            reasoningTokens: usage.outputTokenDetails.reasoningTokens,
+          } : undefined,
+        };
+      } catch {
+        return undefined;
+      }
+    },
+    getFinishReason: async () => {
+      try {
+        return await result.finishReason;
+      } catch {
+        return undefined;
+      }
+    },
+  };
 }
