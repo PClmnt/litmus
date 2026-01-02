@@ -10,7 +10,7 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 
 - Run identical prompts across multiple LLMs simultaneously
 - Real-time streaming responses with progress indicators
-- Supports basically any model via Openrouter - who knows what will work what won't. 
+- Supports basically any model via Openrouter - who knows what will work and what won't. 
 - Visual comparison grid with response timing
 
 
