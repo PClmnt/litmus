@@ -1,32 +1,20 @@
-```
- ___  ___   ___               ___         ___   ___ 
-.'|        .'| `._|=|   |=|_.'   .'|\/|`.   |   | |`.   |   |=|_.' 
-.'  |      .'  |      |   |      .'  |  |  `. |   | |  `. `.  |      
-|   |      |   |      |   |      |   |  |   | |   | |   |   `.|=|`.  
-|   |  ___ |   |      `.  |      |   |  |   | `.  | |   |  ___  |  `.
-|___|=|_.' |___|        `.|      |___|  |___|   `.|=|___|  `._|=|___|
-```
+Litmus
 
-A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, evaluate their tool usage capabilities, and analyze results with automated [...]
+A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, evaluate their tool usage capabilities, and analyze results with evals
 
 ![](images/main.png)
 
 ## Features
 
-### 🎯 Side-by-Side Model Comparison
+###  Model Comparison
 
 - Run identical prompts across multiple LLMs simultaneously
 - Real-time streaming responses with progress indicators
-- Support for popular models (Grok, Olmo, Qwen, and more via OpenRouter)
+- Supports basically any model via Openrouter - who knows what will work what won't. 
 - Visual comparison grid with response timing
 
-### 🛠️ Tool Use Evaluation
 
-- Test models with function calling capabilities
-- Track tool invocations and results
-- Evaluate proper tool selection and usage
-
-### 🤖 Automated Evaluation (LLM-as-Judge)
+### Evals using LLM-as-Judge
 
 - Run automated evaluations using dedicated judge models
 - Multi-criteria scoring (accuracy, relevance, reasoning, tool use)
@@ -35,7 +23,7 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 
 ![](images/eval.png)
 
-### 🗄️ Persistent Storage
+### Persistent Storage
 
 - SQLite database for all benchmark runs and results
 - Searchable history of past runs
@@ -123,22 +111,6 @@ Litmus evaluates models on:
 - **Enter** - Select run
 - **Delete** - Remove run
 
-## Architecture
-
-```
-src/
-├── components/          # Reusable UI components
-├── views/              # Main application views
-│   ├── BenchmarkView.tsx    # Model comparison
-│   ├── EvaluationView.tsx   # LLM-as-judge scoring
-│   ├── HistoryView.tsx      # Past runs browser
-│   └── SettingsView.tsx     # Configuration
-├── tools/              # Function calling tools
-├── evaluation/         # Judge logic and prompts
-├── db/                 # Database layer
-├── types/              # TypeScript types
-└── ai.ts              # AI provider integration
-```
 
 ## Development
 
