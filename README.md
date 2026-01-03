@@ -6,7 +6,7 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 
 ## Features
 
-###  Model Comparison
+### Model Comparison
 
 - Run identical prompts across multiple LLMs simultaneously
 - Real-time streaming responses with progress indicators
@@ -14,16 +14,17 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 - Visual comparison grid with response timing
 - **Multi-modal support** - Attach images to prompts (see Image Attachments below)
 
-
 ### Image Attachments
 
 Litmus supports multi-modal prompts with image attachments. You can attach images in multiple ways:
 
 **Clipboard Paste (Ctrl+V)**
+
 - Copy an image to your clipboard (Cmd/Ctrl+C on any image)
 - Press `Ctrl+V` in the Benchmark view to attach
 
 **File Path**
+
 - Type or paste a file path to an image
 - Supports `~/` home directory expansion
 - Example: `~/photos/screenshot.png`
@@ -31,11 +32,11 @@ Litmus supports multi-modal prompts with image attachments. You can attach image
 **Supported Formats**: PNG, JPG, JPEG, GIF, WebP, BMP
 
 **Image Controls**
+
 - `x` - Remove last attached image
 - `c` - Clear all attached images
 - `i` - Open image input dialog (alternative method)
 - Images are displayed above the prompt input when attached
-
 
 ### Evals using LLM-as-Judge
 
@@ -54,12 +55,16 @@ Litmus supports multi-modal prompts with image attachments. You can attach image
 
 ![](images/history.png)
 
-
-
 ## Installation
 
+Requires [Bun](https://bun.sh)
+
 ```bash
-npm install -g litmus-ai
+bun add -g litmus-ai
+```
+
+```bash
+litmus
 ```
 
 ### Environment Setup
@@ -92,7 +97,6 @@ litmus
 OPENROUTER_API_KEY=your_key_here  # Required - get from https://openrouter.ai
 EXA_API_KEY=your_key_here         # Optional - for web search tool (https://exa.ai)
 ```
-
 
 ## Evaluation Criteria
 
@@ -136,7 +140,6 @@ Litmus evaluates models on:
 - **/** - Focus search
 - **Enter** - Select run
 - **Delete** - Remove run
-
 
 ## Development
 

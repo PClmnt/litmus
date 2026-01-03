@@ -1,6 +1,6 @@
 {
   "name": "litmus-ai",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Multi-model LLM eval CLI tool",
   "module": "src/index.tsx",
   "type": "module",
@@ -11,9 +11,12 @@
     "dist"
   ],
   "scripts": {
-    "dev": "bun run --watch src/index.tsx",
-    "build": "bun build src/index.tsx --outdir dist --target node --entry-naming cli.js",
+    "dev": "LITMUS_DB_PATH=./data/Litmus.db bun run --watch src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target bun --entry-naming cli.js && perl -0777 -pi -e 's/^#!.*\\n/#!\\/usr\\/bin\\/env bun\\n/' dist/cli.js",
     "prepublishOnly": "bun run build"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "devDependencies": {
     "@types/bun": "latest"
