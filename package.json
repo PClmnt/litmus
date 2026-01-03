@@ -1,6 +1,6 @@
 {
   "name": "litmus-ai",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Multi-model LLM eval CLI tool",
   "module": "src/index.tsx",
   "type": "module",
