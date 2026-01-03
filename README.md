@@ -1,6 +1,6 @@
 Litmus
 
-A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, evaluate their tool usage capabilities, and analyze results with evals
+A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Compare multiple language models side-by-side, and analyze results with evals. 
 
 ![](images/main.png)
 
