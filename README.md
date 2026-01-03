@@ -10,8 +10,31 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 
 - Run identical prompts across multiple LLMs simultaneously
 - Real-time streaming responses with progress indicators
-- Supports basically any model via Openrouter - who knows what will work and what won't. 
+- Supports basically any model via Openrouter - who knows what will work and what won't.
 - Visual comparison grid with response timing
+- **Multi-modal support** - Attach images to prompts (see Image Attachments below)
+
+
+### Image Attachments
+
+Litmus supports multi-modal prompts with image attachments. You can attach images in multiple ways:
+
+**Clipboard Paste (Ctrl+V)**
+- Copy an image to your clipboard (Cmd/Ctrl+C on any image)
+- Press `Ctrl+V` in the Benchmark view to attach
+
+**File Path**
+- Type or paste a file path to an image
+- Supports `~/` home directory expansion
+- Example: `~/photos/screenshot.png`
+
+**Supported Formats**: PNG, JPG, JPEG, GIF, WebP, BMP
+
+**Image Controls**
+- `x` - Remove last attached image
+- `c` - Clear all attached images
+- `i` - Open image input dialog (alternative method)
+- Images are displayed above the prompt input when attached
 
 
 ### Evals using LLM-as-Judge
@@ -96,6 +119,11 @@ Litmus evaluates models on:
 - **Enter** - Add model (when focused)
 - **Space** - Toggle tool
 - **d** - Remove last model
+- **Ctrl+V** - Paste image from clipboard
+- **i** - Open image input dialog
+- **x** - Remove last attached image
+- **c** - Clear all attached images
+- **/** - Search/add models
 
 ### Evaluation View
 

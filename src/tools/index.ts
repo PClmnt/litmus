@@ -1,30 +1,18 @@
 // Tool registry - exports all available tools
-import { calculatorTool } from "./calculator";
 import { webSearchTool } from "./web-search";
-import { codeExecutorTool } from "./code-executor";
 import type { Tool, ToolSet } from "ai";
 
 export const AVAILABLE_TOOLS: Record<string, Tool> = {
-  calculator: calculatorTool,
   webSearch: webSearchTool,
-  codeExecutor: codeExecutorTool,
 };
 
 export const TOOL_DESCRIPTIONS: Record<
   string,
   { name: string; description: string }
 > = {
-  calculator: {
-    name: "Calculator",
-    description: "Evaluate mathematical expressions",
-  },
   webSearch: {
     name: "Web Search",
     description: "Search for information (mock)",
-  },
-  codeExecutor: {
-    name: "Code Executor",
-    description: "Run JavaScript code",
   },
 };
 
@@ -45,6 +33,4 @@ export function getAllToolNames(): string[] {
 export type ToolName = keyof typeof AVAILABLE_TOOLS;
 
 // Re-export individual tools
-export { calculatorTool } from "./calculator";
 export { webSearchTool } from "./web-search";
-export { codeExecutorTool } from "./code-executor";

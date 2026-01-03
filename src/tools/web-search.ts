@@ -22,14 +22,64 @@ interface SearchResult {
   url: string;
   publishedDate: string;
   author: string | null;
+  score?: number | null;
   text: string;
+  highlights?: string[];
+  highlightScores?: number[];
+  summary?: string;
+  subpages?: SearchResult[];
+  extras?: {
+    links?: string[];
+    imageLinks?: string[];
+  };
   image: string;
   favicon: string;
+}
+
+interface RawSearchResult {
+  id?: string;
+  title?: string;
+  url: string;
+  publishedDate?: string | null;
+  author?: string | null;
+  score?: number | null;
+  text?: string;
+  highlights?: string[];
+  highlightScores?: number[];
+  summary?: string;
+  subpages?: RawSearchResult[];
+  extras?: {
+    links?: string[];
+    imageLinks?: string[];
+  };
+  image?: string;
+  favicon?: string;
 }
 
 interface SearchRequest {
   query: string;
   numResults: number;
+  contents?: {
+    text?: boolean | { maxCharacters?: number; includeHtmlTags?: boolean };
+    highlights?: {
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    };
+    summary?: {
+      query?: string;
+      schema?: Record<string, unknown>;
+    };
+    subpages?: number;
+    subpageTarget?: string | string[];
+    extras?: {
+      links?: number;
+      imageLinks?: number;
+    };
+    livecrawl?: "never" | "fallback" | "always" | "preferred";
+    livecrawlTimeout?: number;
+    context?: boolean | { maxCharacters?: number };
+  };
 }
 
 interface ExaSearchResponse {
@@ -37,18 +87,32 @@ interface ExaSearchResponse {
   results: SearchResult[];
 }
 
-const searchResultSchema = z
-  .object({
-    id: z.string().optional(),
-    title: z.string().optional(),
-    url: z.string(),
-    publishedDate: z.string().optional(),
-    author: z.string().nullable().optional(),
-    text: z.string().optional(),
-    image: z.string().optional(),
-    favicon: z.string().optional(),
-  })
-  .passthrough();
+const searchResultSchema: z.ZodType<RawSearchResult> = z.lazy(() =>
+  z
+    .object({
+      id: z.string().optional(),
+      title: z.string().optional(),
+      url: z.string(),
+      publishedDate: z.string().nullable().optional(),
+      author: z.string().nullable().optional(),
+      score: z.number().nullable().optional(),
+      text: z.string().optional(),
+      highlights: z.array(z.string()).optional(),
+      highlightScores: z.array(z.number()).optional(),
+      summary: z.string().optional(),
+      subpages: z.array(searchResultSchema).optional(),
+      extras: z
+        .object({
+          links: z.array(z.string()).optional(),
+          imageLinks: z.array(z.string()).optional(),
+        })
+        .partial()
+        .optional(),
+      image: z.string().optional(),
+      favicon: z.string().optional(),
+    })
+    .passthrough()
+);
 
 const exaSearchResponseSchema = z
   .object({
@@ -56,6 +120,27 @@ const exaSearchResponseSchema = z
     results: z.array(searchResultSchema),
   })
   .passthrough();
+
+function normalizeSearchResult(result: RawSearchResult): SearchResult {
+  return {
+    id: result.id ?? result.url,
+    title: result.title ?? "",
+    url: result.url,
+    publishedDate: result.publishedDate ?? "",
+    author: result.author ?? null,
+    score: result.score ?? null,
+    text: result.text ?? "",
+    highlights: result.highlights ?? [],
+    highlightScores: result.highlightScores ?? [],
+    summary: result.summary ?? "",
+    subpages: result.subpages
+      ? result.subpages.map((subpage) => normalizeSearchResult(subpage))
+      : [],
+    extras: result.extras ?? undefined,
+    image: result.image ?? "",
+    favicon: result.favicon ?? "",
+  };
+}
 export const webSearchTool = tool({
   title: "Web Search Tool",
   description:
@@ -81,22 +166,20 @@ export const webSearchTool = tool({
     }
 
     const numResults = Math.max(1, Math.min(100, Math.floor(maxResults)));
-    const raw = await apiRequest<
-      unknown,
-      SearchRequest & { contents?: unknown }
-    >("https://api.exa.ai/search", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-      },
-      body: {
-        query,
-        numResults,
-        // Request content extraction (maps to Exa's "search and crawl" behavior).
-        // The API ignores unknown fields, so this is safe across minor API changes.
-        contents: { text: true },
-      },
-    });
+    const raw = await apiRequest<unknown, SearchRequest>(
+      "https://api.exa.ai/search",
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+        },
+        body: {
+          query,
+          numResults,
+          contents: { text: true },
+        },
+      }
+    );
 
     const parsed = exaSearchResponseSchema.safeParse(raw);
     if (!parsed.success) {
@@ -109,16 +192,7 @@ export const webSearchTool = tool({
 
     const result: ExaSearchResponse = {
       requestId: parsed.data.requestId,
-      results: parsed.data.results.map((r) => ({
-        id: r.id ?? r.url,
-        title: r.title ?? "",
-        url: r.url,
-        publishedDate: r.publishedDate ?? "",
-        author: r.author ?? null,
-        text: r.text ?? "",
-        image: r.image ?? "",
-        favicon: r.favicon ?? "",
-      })),
+      results: parsed.data.results.map((r) => normalizeSearchResult(r)),
     };
     return {
       query,
