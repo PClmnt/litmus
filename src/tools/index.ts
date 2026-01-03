@@ -12,7 +12,7 @@ export const TOOL_DESCRIPTIONS: Record<
 > = {
   webSearch: {
     name: "Web Search",
-    description: "Search for information (mock)",
+    description: "Search for information",
   },
 };
 

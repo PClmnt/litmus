@@ -164,7 +164,7 @@ function App() {
 }
 
 const renderer = await createCliRenderer();
-if (process.env.NODE_ENV === "development") {
+if (process.env.LITMUS_DEV_CONSOLE === "1") {
   renderer.console.toggle();
 }
 createRoot(renderer).render(<App />);
