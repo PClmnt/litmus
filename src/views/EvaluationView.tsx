@@ -19,6 +19,7 @@ import {
   type EvaluationResult,
 } from "../evaluation";
 import type { ModelResponse } from "../types";
+import { theme } from "../theme";
 
 interface EvaluationViewProps {
   runId: number | null;
@@ -157,7 +158,7 @@ export function EvaluationView({
     <box flexDirection="column" flexGrow={1}>
       {/* Header */}
       <box marginBottom={1}>
-        <text style={{ fg: "#6699CC" }}>Evaluation for Run #{runId}</text>
+        <text style={{ fg: theme.accent.blue }}>Evaluation for Run #{runId}</text>
       </box>
 
       {/* Prompt */}
@@ -173,10 +174,10 @@ export function EvaluationView({
             key={model.value}
             padding={1}
             borderStyle={i === selectedJudgeIndex ? "double" : "single"}
-            backgroundColor={i === selectedJudgeIndex ? "#2a4a6a" : undefined}
+            backgroundColor={i === selectedJudgeIndex ? theme.ui.selection : undefined}
           >
             <text
-              style={{ fg: i === selectedJudgeIndex ? "#FFFFFF" : "#888888" }}
+              style={{ fg: i === selectedJudgeIndex ? theme.fg.default : theme.fg.faint }}
             >
               {model.name}
             </text>
@@ -187,12 +188,12 @@ export function EvaluationView({
       {/* Status */}
       <box marginBottom={1}>
         {isEvaluating ? (
-          <text style={{ fg: "#FFA500" }}>
+          <text style={{ fg: theme.status.loading }}>
             Evaluating with {JUDGE_MODELS[selectedJudgeIndex]?.name ?? "judge"}
             ...
           </text>
         ) : error ? (
-          <text style={{ fg: "#FF0000" }}>Error: {error}</text>
+          <text style={{ fg: theme.status.error }}>Error: {error}</text>
         ) : (
           <text attributes={TextAttributes.DIM}>
             Press 'e' to run evaluation | Left/Right: select judge | q: back
@@ -209,8 +210,8 @@ export function EvaluationView({
           title="Results"
         >
           {/* Ranking Header */}
-          <box flexDirection="row" padding={1} backgroundColor="#1a1a2e">
-            <text style={{ fg: "#6699CC" }}>
+          <box flexDirection="row" padding={1} backgroundColor={theme.bg.surface}>
+            <text style={{ fg: theme.accent.blue }}>
               {"Rank".padEnd(6)}
               {"Model".padEnd(25)}
               {"Score".padEnd(10)}
@@ -226,10 +227,10 @@ export function EvaluationView({
                 flexDirection="column"
                 padding={1}
                 borderStyle="single"
-                borderColor="#333"
+                borderColor={theme.ui.border}
               >
                 <box flexDirection="row">
-                  <text style={{ fg: "#FFFFFF" }}>
+                  <text style={{ fg: theme.fg.default }}>
                     {String(index + 1).padEnd(6)}
                     {score.model_name.padEnd(25)}
                   </text>
@@ -239,7 +240,7 @@ export function EvaluationView({
                 </box>
                 {score.reasoning && (
                   <box flexDirection="column" marginTop={1}>
-                    <text style={{ fg: "#AAAAAA" }} wrapMode="word">
+                    <text style={{ fg: theme.fg.muted }} wrapMode="word">
                       {score.reasoning}
                     </text>
                   </box>

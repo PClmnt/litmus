@@ -25,3 +25,4 @@ export function closeDatabase(): void {
 export * from "./queries/runs";
 export * from "./queries/responses";
 export * from "./queries/evaluations";
+export * from "./queries/saved-models";

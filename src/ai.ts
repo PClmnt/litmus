@@ -8,9 +8,15 @@ import {
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ModelConfig, UsageData } from "./types";
 
+export interface ImageAttachment {
+  data: string; // base64 data or URL
+  mimeType?: string;
+}
+
 export interface StreamOptions {
   model: string;
   prompt: string;
+  images?: ImageAttachment[];
   abortSignal?: AbortSignal;
   tools?: Record<string, Tool>;
   config?: ModelConfig;
@@ -32,9 +38,26 @@ export function createAssistantUIMessageStream(
 
   const openrouter = createOpenRouter({ apiKey });
 
+  // Build messages with optional image support
+  const userContent: Array<{ type: "text"; text: string } | { type: "image"; image: string; mimeType?: string }> = [];
+  
+  // Add images first if present
+  if (options.images && options.images.length > 0) {
+    for (const img of options.images) {
+      userContent.push({
+        type: "image",
+        image: img.data,
+        mimeType: img.mimeType,
+      });
+    }
+  }
+  
+  // Add the text prompt
+  userContent.push({ type: "text", text: options.prompt });
+
   const result = streamText({
     model: openrouter.chat(options.model),
-    prompt: options.prompt,
+    messages: [{ role: "user", content: userContent }],
     abortSignal: options.abortSignal,
     tools: options.tools,
     toolChoice: options.tools ? "auto" : "none",

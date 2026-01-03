@@ -1,5 +1,6 @@
 // Tab navigation component
 import type { ViewName } from "../types";
+import { theme } from "../theme";
 
 interface NavigationProps {
   currentView: ViewName;
@@ -28,12 +29,12 @@ export function Navigation({
             key={tab.view}
             padding={1}
             borderStyle={isActive ? "double" : "single"}
-            borderColor={isActive ? "#00FF00" : focused ? "#6699CC" : "#444"}
-            backgroundColor={isActive ? "#1a3a1a" : undefined}
+            borderColor={isActive ? theme.ui.borderActive : focused ? theme.ui.borderFocused : theme.ui.border}
+            backgroundColor={isActive ? theme.bg.green : undefined}
           >
             <text
               style={{
-                fg: isActive ? "#00FF00" : "#888888",
+                fg: isActive ? theme.accent.green : theme.fg.faint,
               }}
             >
               [{tab.key}] {tab.name}

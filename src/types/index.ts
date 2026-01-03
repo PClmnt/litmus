@@ -79,6 +79,16 @@ export interface PromptTemplate {
   updated_at: number;
 }
 
+export interface SavedModel {
+  model_id: string;
+  model_name: string;
+  context_length: number | null;
+  input_modalities: string[];
+  output_modalities: string[];
+  pricing: Record<string, string> | null;
+  added_at: number;
+}
+
 // UI state types
 export type ViewName =
   | "benchmark"

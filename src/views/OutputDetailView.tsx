@@ -2,6 +2,7 @@
 import { TextAttributes } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
 import type { BenchmarkModel, ToolCall, UsageData } from "../types";
+import { theme, getStatusColor } from "../theme";
 
 interface OutputDetailViewProps {
   model: BenchmarkModel & { toolCalls: ToolCall[] };
@@ -49,49 +50,24 @@ export function OutputDetailView({
     return parts.length > 0 ? parts.join(" | ") : null;
   };
 
-  const formatUsageDetails = (usage?: UsageData) => {
-    if (!usage) return null;
-
-    const details: string[] = [];
-
-    if (usage.inputTokenDetails) {
-      if (usage.inputTokenDetails.cacheReadTokens !== undefined) {
-        details.push(`Cache Read: ${usage.inputTokenDetails.cacheReadTokens}`);
-      }
-      if (usage.inputTokenDetails.cacheWriteTokens !== undefined) {
-        details.push(
-          `Cache Write: ${usage.inputTokenDetails.cacheWriteTokens}`
-        );
-      }
-    }
-
-    if (usage.outputTokenDetails?.reasoningTokens !== undefined) {
-      details.push(
-        `Reasoning: ${usage.outputTokenDetails.reasoningTokens}`
-      );
-    }
-
-    return details.length > 0 ? details.join(" | ") : null;
-  };
-
   const textOutput = model.output.find((p) => p.type === "text")?.text || "";
-  const reasoningOutput = model.output.find((p) => p.type === "reasoning")?.text;
+  const reasoningOutput = model.output.find(
+    (p) => p.type === "reasoning"
+  )?.text;
 
   return (
     <box flexDirection="column" flexGrow={1}>
       {/* Header */}
       <box
         borderStyle="rounded"
-        borderColor="#00FF00"
+        borderColor={theme.status.success}
         marginBottom={1}
         padding={1}
         flexDirection="row"
         justifyContent="space-between"
       >
-        <text style={{ fg: "#00FF00", bold: true }}>{model.modelName}</text>
-        <text attributes={TextAttributes.DIM}>
-          Press ESC or Q to go back
-        </text>
+        <text style={{ fg: theme.accent.green }}>{model.modelName}</text>
+        <text attributes={TextAttributes.DIM}>Press ESC or Q to go back</text>
       </box>
 
       {/* Two column layout */}
@@ -112,14 +88,9 @@ export function OutputDetailView({
         {/* Right column - Details */}
         <box flexDirection="column" width={45}>
           {/* Prompt */}
-          <box
-            borderStyle="rounded"
-            title="Prompt"
-            marginBottom={1}
-            height={5}
-          >
+          <box borderStyle="rounded" title="Prompt" marginBottom={1} height={5}>
             <scrollbox padding={1} flexGrow={1}>
-              <text wrapMode="word" style={{ fg: "#6699CC" }}>
+              <text wrapMode="word" style={{ fg: theme.accent.blue }}>
                 {prompt}
               </text>
             </scrollbox>
@@ -136,12 +107,7 @@ export function OutputDetailView({
                 <text attributes={TextAttributes.DIM}>Status:</text>
                 <text
                   style={{
-                    fg:
-                      model.status === "done"
-                        ? "#00FF00"
-                        : model.status === "error"
-                        ? "#FF0000"
-                        : "#FFA500",
+                    fg: getStatusColor(model.status),
                   }}
                 >
                   {model.status}
@@ -164,15 +130,17 @@ export function OutputDetailView({
                   {model.usage.inputTokens !== undefined && (
                     <box flexDirection="row" justifyContent="space-between">
                       <text attributes={TextAttributes.DIM}>Input Tokens:</text>
-                      <text style={{ fg: "#6699CC" }}>
+                      <text style={{ fg: theme.accent.blue }}>
                         {model.usage.inputTokens.toLocaleString()}
                       </text>
                     </box>
                   )}
                   {model.usage.outputTokens !== undefined && (
                     <box flexDirection="row" justifyContent="space-between">
-                      <text attributes={TextAttributes.DIM}>Output Tokens:</text>
-                      <text style={{ fg: "#66CC99" }}>
+                      <text attributes={TextAttributes.DIM}>
+                        Output Tokens:
+                      </text>
+                      <text style={{ fg: theme.accent.aqua }}>
                         {model.usage.outputTokens.toLocaleString()}
                       </text>
                     </box>
@@ -180,7 +148,7 @@ export function OutputDetailView({
                   {model.usage.totalTokens !== undefined && (
                     <box flexDirection="row" justifyContent="space-between">
                       <text attributes={TextAttributes.DIM}>Total Tokens:</text>
-                      <text style={{ fg: "#FFFFFF", bold: true }}>
+                      <text style={{ fg: theme.fg.default }}>
                         {model.usage.totalTokens.toLocaleString()}
                       </text>
                     </box>
@@ -189,7 +157,7 @@ export function OutputDetailView({
                     undefined && (
                     <box flexDirection="row" justifyContent="space-between">
                       <text attributes={TextAttributes.DIM}>Cache Read:</text>
-                      <text style={{ fg: "#CC99FF" }}>
+                      <text style={{ fg: theme.accent.purple }}>
                         {model.usage.inputTokenDetails.cacheReadTokens.toLocaleString()}
                       </text>
                     </box>
@@ -198,7 +166,7 @@ export function OutputDetailView({
                     undefined && (
                     <box flexDirection="row" justifyContent="space-between">
                       <text attributes={TextAttributes.DIM}>Cache Write:</text>
-                      <text style={{ fg: "#CC99FF" }}>
+                      <text style={{ fg: theme.accent.purple }}>
                         {model.usage.inputTokenDetails.cacheWriteTokens.toLocaleString()}
                       </text>
                     </box>
@@ -209,7 +177,7 @@ export function OutputDetailView({
                       <text attributes={TextAttributes.DIM}>
                         Reasoning Tokens:
                       </text>
-                      <text style={{ fg: "#FFCC66" }}>
+                      <text style={{ fg: theme.accent.yellow }}>
                         {model.usage.outputTokenDetails.reasoningTokens.toLocaleString()}
                       </text>
                     </box>
@@ -232,7 +200,7 @@ export function OutputDetailView({
               height={8}
             >
               <scrollbox padding={1} flexGrow={1}>
-                <text wrapMode="word" style={{ fg: "#FFCC66" }}>
+                <text wrapMode="word" style={{ fg: theme.accent.yellow }}>
                   {reasoningOutput}
                 </text>
               </scrollbox>
@@ -249,20 +217,20 @@ export function OutputDetailView({
                       key={i}
                       flexDirection="column"
                       borderStyle="single"
-                      borderColor="#6699CC"
+                      borderColor={theme.accent.blue}
                       padding={1}
                     >
-                      <text style={{ fg: "#6699CC", bold: true }}>
+                      <text style={{ fg: theme.accent.blue }} attributes={TextAttributes.BOLD}>
                         {tc.name}
                       </text>
                       <text attributes={TextAttributes.DIM}>Args:</text>
-                      <text wrapMode="word" style={{ fg: "#888888" }}>
+                      <text wrapMode="word" style={{ fg: theme.fg.faint }}>
                         {JSON.stringify(tc.args, null, 2)}
                       </text>
                       {tc.result !== undefined && (
                         <>
                           <text attributes={TextAttributes.DIM}>Result:</text>
-                          <text wrapMode="word" style={{ fg: "#66CC99" }}>
+                          <text wrapMode="word" style={{ fg: theme.accent.aqua }}>
                             {typeof tc.result === "string"
                               ? tc.result
                               : JSON.stringify(tc.result, null, 2)}

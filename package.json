@@ -1,10 +1,19 @@
 {
-  "name": "Litmus",
+  "name": "litmus-ai",
+  "version": "1.0.0",
+  "description": "Multi-model LLM eval CLI tool",
   "module": "src/index.tsx",
   "type": "module",
-  "private": true,
+  "bin": {
+    "litmus": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "bun run --watch src/index.tsx"
+    "dev": "bun run --watch src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target node --entry-naming cli.js",
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -15,6 +24,7 @@
   "dependencies": {
     "@ai-sdk/react": "^3.0.5",
     "@openrouter/ai-sdk-provider": "^1.5.2",
+    "@openrouter/sdk": "^0.3.11",
     "@opentui/core": "^0.1.67",
     "@opentui/react": "^0.1.67",
     "ai": "^6.0.3",

@@ -1,18 +1,19 @@
+#!/usr/bin/env node
 // Litmus - Multi-model LLM benchmarking application
 import { createCliRenderer } from "@opentui/core";
 import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
 import { useState, useCallback } from "react";
 
 import { Navigation, getViewFromKey } from "./components/Navigation";
-import { BenchmarkView } from "./views/BenchmarkView";
+import { BenchmarkView, type BenchmarkState, type ExtendedBenchmarkModel } from "./views/BenchmarkView";
 import { HistoryView } from "./views/HistoryView";
 import { EvaluationView } from "./views/EvaluationView";
 import { SettingsView } from "./views/SettingsView";
 import { OutputDetailView } from "./views/OutputDetailView";
-import type { ViewName, BenchmarkModel, ToolCall } from "./types";
+import type { ViewName } from "./types";
 
 interface SelectedModelData {
-  model: BenchmarkModel & { toolCalls: ToolCall[] };
+  model: ExtendedBenchmarkModel;
   prompt: string;
 }
 
@@ -23,6 +24,16 @@ function App() {
   const [navigationFocused, setNavigationFocused] = useState(false);
   const [selectedModelData, setSelectedModelData] =
     useState<SelectedModelData | null>(null);
+  const [isModelSearchActive, setIsModelSearchActive] = useState(false);
+
+  // Lifted benchmark state to preserve across navigation
+  const [benchmarkState, setBenchmarkState] = useState<BenchmarkState>({
+    prompt: "Write a haiku about coding",
+    selectedModels: [],
+    enabledTools: [],
+    lastRunId: null,
+    attachedImages: [],
+  });
 
   const handleViewChange = useCallback((view: ViewName) => {
     setCurrentView(view);
@@ -31,7 +42,7 @@ function App() {
   }, []);
 
   const handleModelSelect = useCallback(
-    (model: BenchmarkModel & { toolCalls: ToolCall[] }, prompt: string) => {
+    (model: ExtendedBenchmarkModel, prompt: string) => {
       setSelectedModelData({ model, prompt });
     },
     []
@@ -51,6 +62,8 @@ function App() {
   }, []);
 
   useKeyboard((key) => {
+    if (isModelSearchActive) return;
+
     // Toggle console with Ctrl+K
     if (key.ctrl && key.name === "k") {
       renderer?.console.toggle();
@@ -94,6 +107,9 @@ function App() {
             focused={!navigationFocused}
             onRunComplete={handleRunComplete}
             onModelSelect={handleModelSelect}
+            onSearchActiveChange={setIsModelSearchActive}
+            state={benchmarkState}
+            onStateChange={setBenchmarkState}
           />
         );
       case "history":
@@ -118,6 +134,10 @@ function App() {
           <BenchmarkView
             focused={!navigationFocused}
             onRunComplete={handleRunComplete}
+            onModelSelect={handleModelSelect}
+            onSearchActiveChange={setIsModelSearchActive}
+            state={benchmarkState}
+            onStateChange={setBenchmarkState}
           />
         );
     }
@@ -144,5 +164,7 @@ function App() {
 }
 
 const renderer = await createCliRenderer();
-renderer.console.toggle();
+if (process.env.NODE_ENV === "development") {
+  renderer.console.toggle();
+}
 createRoot(renderer).render(<App />);

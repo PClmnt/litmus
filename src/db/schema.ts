@@ -56,6 +56,17 @@ CREATE TABLE IF NOT EXISTS model_responses (
   config TEXT
 );
 
+-- Saved models shortlist for quick selection
+CREATE TABLE IF NOT EXISTS saved_models (
+  model_id TEXT PRIMARY KEY,
+  model_name TEXT NOT NULL,
+  context_length INTEGER,
+  input_modalities TEXT,
+  output_modalities TEXT,
+  pricing TEXT,
+  added_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
 -- LLM-as-judge evaluations
 CREATE TABLE IF NOT EXISTS evaluations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

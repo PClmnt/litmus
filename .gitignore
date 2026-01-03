@@ -36,3 +36,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 data
 # cloned in for agent docs
 opentui
+opencode

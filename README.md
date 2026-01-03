@@ -48,23 +48,21 @@ A terminal-based LLM benchmarking and evaluation tool built with **OpenTUI**. Co
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/Litmus
-cd Litmus
+npm install -g litmus-ai
+```
 
-# Install dependencies
-bun install
+### Environment Setup
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your OpenRouter API key
+Create a `.env` file in your working directory or export the variables:
+
+```bash
+export OPENROUTER_API_KEY=your_key_here
 ```
 
 ## Quick Start
 
 ```bash
-# Run the application
-bun dev
+litmus
 ```
 
 ### Basic Workflow
@@ -80,8 +78,8 @@ bun dev
 ### Environment Variables
 
 ```bash
-OPENROUTER_API_KEY=your_key_here
-# Optional: Custom models, API endpoints, etc.
+OPENROUTER_API_KEY=your_key_here  # Required - get from https://openrouter.ai
+EXA_API_KEY=your_key_here         # Optional - for web search tool (https://exa.ai)
 ```
 
 

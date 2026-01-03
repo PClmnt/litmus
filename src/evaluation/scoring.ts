@@ -1,4 +1,5 @@
 // Score parsing and normalization for LLM-as-judge evaluations
+import { theme } from "../theme";
 
 export interface ModelEvaluation {
   modelId: string;
@@ -136,9 +137,9 @@ export function formatScoreDisplay(score: number): string {
 }
 
 export function getScoreColor(score: number): string {
-  if (score >= 8) return "#00FF00"; // Green
-  if (score >= 6) return "#90EE90"; // Light green
-  if (score >= 4) return "#FFA500"; // Orange
-  if (score >= 2) return "#FF6347"; // Tomato
-  return "#FF0000"; // Red
+  if (score >= 8) return theme.accent.green;   // High score
+  if (score >= 6) return theme.accent.aqua;    // Good score
+  if (score >= 4) return theme.accent.yellow;  // Medium score
+  if (score >= 2) return theme.accent.orange;  // Low score
+  return theme.accent.red;                     // Very low score
 }

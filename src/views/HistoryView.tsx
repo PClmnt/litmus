@@ -5,6 +5,7 @@ import { TextAttributes } from "@opentui/core";
 import { getDatabase, getRecentRuns, searchRuns, deleteRun, type RunWithResponses } from "../db";
 import { getResponsesForRun } from "../db/queries/responses";
 import { getLatestEvaluationForRun } from "../db/queries/evaluations";
+import { theme } from "../theme";
 
 interface HistoryViewProps {
   onRunSelect?: (runId: number) => void;
@@ -98,7 +99,7 @@ export function HistoryView({ onRunSelect, focused }: HistoryViewProps) {
             setSearchQuery(value);
           }}
           focused={focusedElement === "search" && focused}
-          style={{ focusedBackgroundColor: "#1a1a2e" }}
+          style={{ focusedBackgroundColor: theme.bg.surface }}
         />
       </box>
 
@@ -133,8 +134,8 @@ export function HistoryView({ onRunSelect, focused }: HistoryViewProps) {
         ) : (
           <scrollbox flexGrow={1}>
             {/* Header */}
-            <box flexDirection="row" padding={1} backgroundColor="#1a1a2e">
-              <text style={{ fg: "#6699CC" }}>
+            <box flexDirection="row" padding={1} backgroundColor={theme.bg.surface}>
+              <text style={{ fg: theme.accent.blue }}>
                 {"ID".padEnd(6)}{"Date".padEnd(18)}{"Prompt".padEnd(42)}{"Models".padEnd(8)}{"Score"}
               </text>
             </box>
@@ -147,11 +148,11 @@ export function HistoryView({ onRunSelect, focused }: HistoryViewProps) {
                   key={run.id}
                   flexDirection="row"
                   padding={1}
-                  backgroundColor={isSelected ? "#2a4a6a" : undefined}
+                  backgroundColor={isSelected ? theme.ui.selection : undefined}
                 >
                   <text
                     style={{
-                      fg: isSelected ? "#FFFFFF" : "#CCCCCC",
+                      fg: isSelected ? theme.fg.default : theme.fg.muted,
                     }}
                   >
                     {String(run.id).padEnd(6)}

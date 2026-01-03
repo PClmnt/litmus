@@ -31,8 +31,8 @@ export interface ModelOutput {
 
 // Default judge models in order of preference
 export const JUDGE_MODELS = [
-  { name: "Mimo v2 Flash", value: "xiaomi/mimo-v2-flash:free" },
-  { name: "Deepseek v3.2", value: "deepseek/deepseek-v3.2" },
+  { name: "Mimo v2 Flash", value: "xiaomi/mimo-v2-flash:free", description: "Free, fast Xiaomi model" },
+  { name: "Deepseek v3.2", value: "deepseek/deepseek-v3.2", description: "High quality Deepseek model" },
 ];
 
 export async function evaluateResponses(
