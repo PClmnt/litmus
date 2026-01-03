@@ -10,6 +10,8 @@ export function getDatabase(): Database {
     db.exec("PRAGMA journal_mode = WAL");
     db.exec("PRAGMA foreign_keys = ON");
     db.exec(SCHEMA);
+    // Migration: Add is_judge column if it doesn't exist
+    db.exec(`ALTER TABLE saved_models ADD COLUMN is_judge INTEGER NOT NULL DEFAULT 0`);
   }
   return db;
 }

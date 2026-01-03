@@ -50,12 +50,12 @@ export const theme = {
 
   // UI-specific colors
   ui: {
-    border: "#475258",          // Default borders
-    borderFocused: "#7FBBB3",   // Focused element borders
-    borderActive: "#A7C080",    // Active/selected borders
+    border: "#3D484D",          // Default borders - softer/more subtle
+    borderFocused: "#5C6A72",   // Focused element borders - subtle highlight
+    borderActive: "#7A8478",    // Active/selected borders - muted
     
-    selection: "#543A48",       // Selected item background
-    highlight: "#3D484D",       // Hover/focus background
+    selection: "#3D484D",       // Selected item background - subtle
+    highlight: "#343F44",       // Hover/focus background - minimal
   },
 } as const;
 

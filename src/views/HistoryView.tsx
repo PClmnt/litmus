@@ -88,12 +88,13 @@ export function HistoryView({ onRunSelect, focused }: HistoryViewProps) {
     <box flexDirection="column" flexGrow={1}>
       {/* Search Bar */}
       <box
-        borderStyle={focusedElement === "search" ? "double" : "rounded"}
+        borderStyle="rounded"
+        borderColor={focusedElement === "search" && focused ? theme.ui.borderFocused : theme.ui.border}
         marginBottom={1}
         height={3}
       >
         <input
-          placeholder="Search prompts... (press / to focus)"
+          placeholder="Search prompts..."
           value={searchQuery}
           onInput={(value) => {
             setSearchQuery(value);
@@ -113,9 +114,9 @@ export function HistoryView({ onRunSelect, focused }: HistoryViewProps) {
       {/* Runs List */}
       <box
         borderStyle="rounded"
+        borderColor={theme.ui.border}
         flexGrow={1}
         flexDirection="column"
-        title="Run History"
       >
         {runs.length === 0 ? (
           <box

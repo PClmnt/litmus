@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS saved_models (
   input_modalities TEXT,
   output_modalities TEXT,
   pricing TEXT,
+  is_judge INTEGER NOT NULL DEFAULT 0,
   added_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 

@@ -21,23 +21,21 @@ export function Navigation({
   focused,
 }: NavigationProps) {
   return (
-    <box flexDirection="row" gap={1} marginBottom={1}>
+    <box flexDirection="row" gap={2} marginBottom={1}>
       {TABS.map((tab) => {
         const isActive = currentView === tab.view;
         return (
           <box
             key={tab.view}
-            padding={1}
-            borderStyle={isActive ? "double" : "single"}
-            borderColor={isActive ? theme.ui.borderActive : focused ? theme.ui.borderFocused : theme.ui.border}
-            backgroundColor={isActive ? theme.bg.green : undefined}
+            paddingLeft={1}
+            paddingRight={1}
           >
             <text
               style={{
-                fg: isActive ? theme.accent.green : theme.fg.faint,
+                fg: isActive ? theme.fg.default : theme.fg.faint,
               }}
             >
-              [{tab.key}] {tab.name}
+              {tab.key} {tab.name}
             </text>
           </box>
         );

@@ -86,6 +86,7 @@ export interface SavedModel {
   input_modalities: string[];
   output_modalities: string[];
   pricing: Record<string, string> | null;
+  is_judge: number;
   added_at: number;
 }
 

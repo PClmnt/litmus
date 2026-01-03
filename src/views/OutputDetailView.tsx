@@ -59,15 +59,13 @@ export function OutputDetailView({
     <box flexDirection="column" flexGrow={1}>
       {/* Header */}
       <box
-        borderStyle="rounded"
-        borderColor={theme.status.success}
         marginBottom={1}
-        padding={1}
+        paddingLeft={1}
         flexDirection="row"
         justifyContent="space-between"
       >
-        <text style={{ fg: theme.accent.green }}>{model.modelName}</text>
-        <text attributes={TextAttributes.DIM}>Press ESC or Q to go back</text>
+        <text style={{ fg: theme.fg.default }}>{model.modelName}</text>
+        <text attributes={TextAttributes.DIM}>esc back</text>
       </box>
 
       {/* Two column layout */}
@@ -78,7 +76,7 @@ export function OutputDetailView({
           flexGrow={1}
           flexBasis={0}
           borderStyle="rounded"
-          title="Output"
+          borderColor={theme.ui.border}
         >
           <scrollbox flexGrow={1} padding={1}>
             <text wrapMode="word">{textOutput || "(No output)"}</text>
@@ -88,16 +86,16 @@ export function OutputDetailView({
         {/* Right column - Details */}
         <box flexDirection="column" width={45}>
           {/* Prompt */}
-          <box borderStyle="rounded" title="Prompt" marginBottom={1} height={5}>
+          <box borderStyle="rounded" borderColor={theme.ui.border} marginBottom={1} height={5}>
             <scrollbox padding={1} flexGrow={1}>
-              <text wrapMode="word" style={{ fg: theme.accent.blue }}>
+              <text wrapMode="word" style={{ fg: theme.fg.muted }}>
                 {prompt}
               </text>
             </scrollbox>
           </box>
 
           {/* Stats */}
-          <box borderStyle="rounded" title="Statistics" marginBottom={1}>
+          <box borderStyle="rounded" borderColor={theme.ui.border} marginBottom={1}>
             <box flexDirection="column" padding={1} gap={1}>
               <box flexDirection="row" justifyContent="space-between">
                 <text attributes={TextAttributes.DIM}>Duration:</text>
@@ -123,7 +121,7 @@ export function OutputDetailView({
           </box>
 
           {/* Usage Tokens */}
-          <box borderStyle="rounded" title="Token Usage" marginBottom={1}>
+          <box borderStyle="rounded" borderColor={theme.ui.border} marginBottom={1}>
             <box flexDirection="column" padding={1} gap={1}>
               {model.usage ? (
                 <>
@@ -195,7 +193,7 @@ export function OutputDetailView({
           {reasoningOutput && (
             <box
               borderStyle="rounded"
-              title="Reasoning"
+              borderColor={theme.ui.border}
               marginBottom={1}
               height={8}
             >
@@ -209,15 +207,13 @@ export function OutputDetailView({
 
           {/* Tool Calls */}
           {model.toolCalls && model.toolCalls.length > 0 && (
-            <box borderStyle="rounded" title="Tool Calls" flexGrow={1}>
+            <box borderStyle="rounded" borderColor={theme.ui.border} flexGrow={1}>
               <scrollbox padding={1} flexGrow={1}>
                 <box flexDirection="column" gap={1}>
                   {model.toolCalls.map((tc, i) => (
                     <box
                       key={i}
                       flexDirection="column"
-                      borderStyle="single"
-                      borderColor={theme.accent.blue}
                       padding={1}
                     >
                       <text style={{ fg: theme.accent.blue }} attributes={TextAttributes.BOLD}>

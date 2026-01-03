@@ -1,5 +1,5 @@
 // Evaluation view - display and run LLM-as-judge evaluations
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useKeyboard } from "@opentui/react";
 import { TextAttributes } from "@opentui/core";
 import { getDatabase } from "../db";
@@ -13,11 +13,11 @@ import {
 } from "../db/queries/evaluations";
 import {
   evaluateResponses,
-  JUDGE_MODELS,
   getScoreColor,
   formatScoreDisplay,
   type EvaluationResult,
 } from "../evaluation";
+import { listJudgeModels } from "../db/queries/saved-models";
 import type { ModelResponse } from "../types";
 import { theme } from "../theme";
 
@@ -25,6 +25,12 @@ interface EvaluationViewProps {
   runId: number | null;
   focused: boolean;
   onBack?: () => void;
+}
+
+interface JudgeModelOption {
+  name: string;
+  value: string;
+  description?: string;
 }
 
 export function EvaluationView({
@@ -40,9 +46,21 @@ export function EvaluationView({
   const [selectedJudgeIndex, setSelectedJudgeIndex] = useState(0);
   const [promptText, setPromptText] = useState<string>("");
   const [responses, setResponses] = useState<ModelResponse[]>([]);
+  const [judgeModels, setJudgeModels] = useState<JudgeModelOption[]>([]);
 
-  // Load existing evaluation if available
-  useState(() => {
+  useEffect(() => {
+    const db = getDatabase();
+    const judges = listJudgeModels(db);
+    setJudgeModels(
+      judges.map((j) => ({
+        name: j.model_name,
+        value: j.model_id,
+        description: `ctx ${j.context_length?.toLocaleString() ?? "n/a"}`,
+      }))
+    );
+  }, []);
+
+  useEffect(() => {
     if (runId) {
       const db = getDatabase();
       const run = getRun(db, runId);
@@ -55,23 +73,22 @@ export function EvaluationView({
         }
       }
     }
-  });
+  }, [runId]);
 
   const runEvaluation = useCallback(async () => {
-    if (!runId || isEvaluating || responses.length === 0) return;
+    if (!runId || isEvaluating || responses.length === 0 || judgeModels.length === 0) return;
 
     setIsEvaluating(true);
     setError(null);
 
     try {
-      const selectedJudge = JUDGE_MODELS[selectedJudgeIndex];
+      const selectedJudge = judgeModels[selectedJudgeIndex];
       if (!selectedJudge) {
         throw new Error("No judge model selected");
       }
       const judgeModel = selectedJudge.value;
       const db = getDatabase();
 
-      // Prepare model outputs for evaluation
       const modelOutputs = responses.map((r) => ({
         modelId: r.model_id,
         modelName: r.model_name,
@@ -79,23 +96,19 @@ export function EvaluationView({
         toolCalls: r.tool_calls ? JSON.parse(r.tool_calls) : undefined,
       }));
 
-      // Check if any models used tools
       const hasToolUse = modelOutputs.some((m) => m.toolCalls?.length > 0);
 
-      // Run evaluation
       const result = await evaluateResponses(promptText, modelOutputs, {
         judgeModel,
         includeToolUseCriteria: hasToolUse,
       });
 
-      // Save evaluation to database
       const evalId = createEvaluation(db, {
         run_id: runId,
         judge_model: judgeModel,
         evaluation_prompt: promptText,
       });
 
-      // Save scores
       for (const evalResult of result.evaluations) {
         const response = responses.find(
           (r) => r.model_id === evalResult.modelId
@@ -112,7 +125,6 @@ export function EvaluationView({
         }
       }
 
-      // Reload evaluation
       const newEval = getLatestEvaluationForRun(db, runId);
       setEvaluation(newEval);
     } catch (err) {
@@ -120,7 +132,7 @@ export function EvaluationView({
     } finally {
       setIsEvaluating(false);
     }
-  }, [runId, isEvaluating, responses, promptText, selectedJudgeIndex]);
+  }, [runId, isEvaluating, responses, promptText, selectedJudgeIndex, judgeModels]);
 
   useKeyboard((key) => {
     if (!focused) return;
@@ -139,7 +151,7 @@ export function EvaluationView({
       setSelectedJudgeIndex((prev) => Math.max(0, prev - 1));
     } else if (key.name === "right") {
       setSelectedJudgeIndex((prev) =>
-        Math.min(JUDGE_MODELS.length - 1, prev + 1)
+        Math.min(judgeModels.length - 1, prev + 1)
       );
     }
   });
@@ -162,38 +174,47 @@ export function EvaluationView({
       </box>
 
       {/* Prompt */}
-      <box borderStyle="rounded" marginBottom={1} padding={1} title="Prompt">
+      <box borderStyle="rounded" borderColor={theme.ui.border} marginBottom={1} padding={1}>
         <text wrapMode="word">{promptText || "Loading..."}</text>
       </box>
 
       {/* Judge Selection */}
-      <box flexDirection="row" gap={1} marginBottom={1}>
-        <text>Judge Model:</text>
-        {JUDGE_MODELS.map((model, i) => (
-          <box
-            key={model.value}
-            padding={1}
-            borderStyle={i === selectedJudgeIndex ? "double" : "single"}
-            backgroundColor={i === selectedJudgeIndex ? theme.ui.selection : undefined}
-          >
-            <text
-              style={{ fg: i === selectedJudgeIndex ? theme.fg.default : theme.fg.faint }}
+      <box flexDirection="row" gap={2} marginBottom={1}>
+        <text style={{ fg: theme.fg.muted }}>Judge:</text>
+        {judgeModels.length === 0 ? (
+          <text style={{ fg: theme.status.error }}>
+            No judge models configured. Go to Settings to add judge models.
+          </text>
+        ) : (
+          judgeModels.map((model, i) => (
+            <box
+              key={model.value}
+              paddingLeft={1}
+              paddingRight={1}
             >
-              {model.name}
-            </text>
-          </box>
-        ))}
+              <text
+                style={{ fg: i === selectedJudgeIndex ? theme.fg.default : theme.fg.faint }}
+              >
+                {model.name}
+              </text>
+            </box>
+          ))
+        )}
       </box>
 
       {/* Status */}
       <box marginBottom={1}>
         {isEvaluating ? (
           <text style={{ fg: theme.status.loading }}>
-            Evaluating with {JUDGE_MODELS[selectedJudgeIndex]?.name ?? "judge"}
+            Evaluating with {judgeModels[selectedJudgeIndex]?.name ?? "judge"}
             ...
           </text>
         ) : error ? (
           <text style={{ fg: theme.status.error }}>Error: {error}</text>
+        ) : judgeModels.length === 0 ? (
+          <text attributes={TextAttributes.DIM}>
+            Configure judge models in Settings | q: back
+          </text>
         ) : (
           <text attributes={TextAttributes.DIM}>
             Press 'e' to run evaluation | Left/Right: select judge | q: back
@@ -205,9 +226,9 @@ export function EvaluationView({
       {evaluation && (
         <box
           borderStyle="rounded"
+          borderColor={theme.ui.border}
           flexGrow={1}
           flexDirection="column"
-          title="Results"
         >
           {/* Ranking Header */}
           <box flexDirection="row" padding={1} backgroundColor={theme.bg.surface}>
@@ -226,8 +247,6 @@ export function EvaluationView({
                 key={score.id}
                 flexDirection="column"
                 padding={1}
-                borderStyle="single"
-                borderColor={theme.ui.border}
               >
                 <box flexDirection="row">
                   <text style={{ fg: theme.fg.default }}>
@@ -251,9 +270,28 @@ export function EvaluationView({
         </box>
       )}
 
-      {!evaluation && !isEvaluating && responses.length > 0 && (
+      {!evaluation && !isEvaluating && responses.length > 0 && judgeModels.length === 0 && (
         <box
           borderStyle="rounded"
+          borderColor={theme.ui.border}
+          flexGrow={1}
+          justifyContent="center"
+          alignItems="center"
+          flexDirection="column"
+        >
+          <text attributes={TextAttributes.DIM}>
+            No judge models configured
+          </text>
+          <text attributes={TextAttributes.DIM}>
+            Go to Settings to configure judge models
+          </text>
+        </box>
+      )}
+
+      {!evaluation && !isEvaluating && responses.length > 0 && judgeModels.length > 0 && (
+        <box
+          borderStyle="rounded"
+          borderColor={theme.ui.border}
           flexGrow={1}
           justifyContent="center"
           alignItems="center"

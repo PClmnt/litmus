@@ -4,7 +4,7 @@ import { useKeyboard } from "@opentui/react";
 import { TextAttributes } from "@opentui/core";
 import { getDatabase, getRunCount } from "../db";
 import { TOOL_DESCRIPTIONS, getAllToolNames } from "../tools";
-import { useModelSelector } from "../hooks/useModelSelector";
+import { useJudgeModelSelector } from "../hooks/useJudgeModelSelector";
 import { theme } from "../theme";
 
 interface SettingsViewProps {
@@ -14,7 +14,6 @@ interface SettingsViewProps {
 interface Settings {
   defaultTemperature: number;
   defaultMaxTokens: number;
-  judgeModels: string[]; // Now supports multiple judge models
   autoSaveRuns: boolean;
 }
 
@@ -24,7 +23,6 @@ export function SettingsView({ focused }: SettingsViewProps) {
   const [settings, setSettings] = useState<Settings>({
     defaultTemperature: 0.7,
     defaultMaxTokens: 2048,
-    judgeModels: [],
     autoSaveRuns: true,
   });
 
@@ -43,8 +41,7 @@ export function SettingsView({ focused }: SettingsViewProps) {
 
   const [judgeModelIndex, setJudgeModelIndex] = useState(0);
 
-  // Use the shared model selector hook
-  const modelSelector = useModelSelector();
+  const judgeModelSelector = useJudgeModelSelector();
   const {
     savedModels,
     savedModelIndex,
@@ -66,49 +63,29 @@ export function SettingsView({ focused }: SettingsViewProps) {
     closeModelSearch,
     addSavedModel,
     deleteSavedModel,
-  } = modelSelector;
+    addJudgeModel,
+    removeJudgeModel,
+    isJudgeModel,
+  } = judgeModelSelector;
+
+  const judgeModels = savedModels.filter((m) => m.is_judge === 1);
 
   useEffect(() => {
     setJudgeModelIndex((prev) =>
-      Math.min(prev, Math.max(0, settings.judgeModels.length - 1))
+      Math.min(prev, Math.max(0, judgeModels.length - 1))
     );
-  }, [settings.judgeModels.length]);
+  }, [judgeModels.length]);
 
-  // Custom deleteSavedModel that also removes from judge models
   const handleDeleteSavedModel = useCallback(
     (modelId: string) => {
       deleteSavedModel(modelId);
-      // Also remove from judge models if present
-      setSettings((prev) => ({
-        ...prev,
-        judgeModels: prev.judgeModels.filter((id) => id !== modelId),
-      }));
     },
     [deleteSavedModel]
   );
 
-  const addJudgeModel = useCallback(
-    (modelId: string) => {
-      if (settings.judgeModels.includes(modelId)) return;
-      setSettings((prev) => ({
-        ...prev,
-        judgeModels: [...prev.judgeModels, modelId],
-      }));
-    },
-    [settings.judgeModels]
-  );
-
-  const removeJudgeModel = useCallback((modelId: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      judgeModels: prev.judgeModels.filter((id) => id !== modelId),
-    }));
-  }, []);
-
   useKeyboard((key) => {
     if (!focused) return;
 
-    // Handle model search modal
     if (showModelSearch) {
       if (key.name === "escape") {
         closeModelSearch();
@@ -126,7 +103,7 @@ export function SettingsView({ focused }: SettingsViewProps) {
       }
 
       if (
-        key.name === "up" &&
+        (key.name === "up" || key.name === "backtab") &&
         modelSearchFocus === "list" &&
         modelSearchIndex === 0
       ) {
@@ -139,7 +116,10 @@ export function SettingsView({ focused }: SettingsViewProps) {
         modelSearchFocus === "list"
       ) {
         const model = visibleOpenRouterModels[modelSearchIndex];
-        if (model) addSavedModel(model);
+        if (model) {
+          addSavedModel(model);
+          addJudgeModel(model.id);
+        }
         return;
       }
 
@@ -156,7 +136,6 @@ export function SettingsView({ focused }: SettingsViewProps) {
       return;
     }
 
-    // Judge section keyboard handling
     if (focusedSection === "judge") {
       if (key.name === "slash" || key.raw === "/" || key.name === "a") {
         openModelSearch();
@@ -169,9 +148,35 @@ export function SettingsView({ focused }: SettingsViewProps) {
         return;
       }
 
-      if (key.name === "d" && settings.judgeModels.length > 0) {
-        const modelId = settings.judgeModels[judgeModelIndex];
+      if (key.name === "d" && judgeModels.length > 0) {
+        const modelId = judgeModels[judgeModelIndex]?.model_id;
         if (modelId) removeJudgeModel(modelId);
+        return;
+      }
+
+      if (key.name === "left" && judgeModels.length > 0) {
+        setJudgeModelIndex((prev) => Math.max(0, prev - 1));
+        return;
+      }
+
+      if (key.name === "right" && judgeModels.length > 0) {
+        setJudgeModelIndex((prev) => Math.min(judgeModels.length - 1, prev + 1));
+        return;
+      }
+
+      if (
+        (key.name === "return" || key.name === "linefeed") &&
+        savedModels.length > 0 &&
+        savedModelIndex < savedModels.length
+      ) {
+        const model = savedModels[savedModelIndex];
+        if (model) {
+          if (isJudgeModel(model.model_id)) {
+            removeJudgeModel(model.model_id);
+          } else {
+            addJudgeModel(model.model_id);
+          }
+        }
         return;
       }
     }
@@ -183,9 +188,9 @@ export function SettingsView({ focused }: SettingsViewProps) {
     <box flexDirection="column" flexGrow={1} gap={1}>
       {/* Model Defaults */}
       <box
-        borderStyle={focusedSection === "model" ? "double" : "rounded"}
+        borderStyle="rounded"
+        borderColor={focusedSection === "model" && focused ? theme.ui.borderFocused : theme.ui.border}
         padding={1}
-        title="Model Defaults"
       >
         <box flexDirection="column" gap={1}>
           <box flexDirection="row" gap={2}>
@@ -201,9 +206,9 @@ export function SettingsView({ focused }: SettingsViewProps) {
 
       {/* Judge Configuration */}
       <box
-        borderStyle={focusedSection === "judge" ? "double" : "rounded"}
+        borderStyle="rounded"
+        borderColor={focusedSection === "judge" && focused ? theme.ui.borderFocused : theme.ui.border}
         padding={1}
-        title="Judge Models (Enter to add, / to search, d to remove)"
         height={14}
       >
         <box flexDirection="row" gap={2} flexGrow={1}>
@@ -247,23 +252,22 @@ export function SettingsView({ focused }: SettingsViewProps) {
           {/* Selected Judge Models */}
           <box flexDirection="column" width={30}>
             <text style={{ fg: theme.accent.blue }} attributes={TextAttributes.DIM}>
-              Selected Judges ({settings.judgeModels.length}):
+              Selected Judges ({judgeModels.length}):
             </text>
             <scrollbox flexGrow={1}>
-              {settings.judgeModels.length === 0 ? (
+              {judgeModels.length === 0 ? (
                 <text attributes={TextAttributes.DIM}>None selected</text>
               ) : (
                 <box flexDirection="column">
-                  {settings.judgeModels.map((modelId, i) => {
-                    const model = savedModels.find((m) => m.model_id === modelId);
+                  {judgeModels.map((model, i) => {
                     const isFocused = judgeModelIndex === i;
                     return (
                       <box
-                        key={modelId}
+                        key={model.model_id}
                         backgroundColor={isFocused ? theme.ui.selection : undefined}
                       >
                         <text style={{ fg: theme.accent.green }}>
-                          {model?.model_name || modelId}
+                          {model.model_name}
                         </text>
                       </box>
                     );
@@ -287,13 +291,13 @@ export function SettingsView({ focused }: SettingsViewProps) {
             marginLeft: -45,
             marginTop: -10,
             border: true,
-            borderStyle: "double",
-            borderColor: theme.ui.borderFocused,
+            borderStyle: "rounded",
+            borderColor: theme.ui.border,
             backgroundColor: theme.bg.surface,
             padding: 1,
             zIndex: 100,
           }}
-          title="Search OpenRouter Models"
+          title="Search Models"
           titleAlignment="center"
         >
           <box flexDirection="column" gap={1} flexGrow={1}>
@@ -337,7 +341,10 @@ export function SettingsView({ focused }: SettingsViewProps) {
                   const model = visibleOpenRouterModels.find(
                     (item) => item.id === option?.value
                   );
-                  if (model) addSavedModel(model);
+                  if (model) {
+                    addSavedModel(model);
+                    addJudgeModel(model.id);
+                  }
                 }}
                 style={{
                   height: 12,
@@ -349,7 +356,7 @@ export function SettingsView({ focused }: SettingsViewProps) {
             <text attributes={TextAttributes.DIM}>
               Showing{" "}
               {Math.min(filteredOpenRouterModels.length, MAX_SEARCH_RESULTS)} of{" "}
-              {filteredOpenRouterModels.length} matches | Enter: save | Esc: close
+              {filteredOpenRouterModels.length} matches | Enter: save & add as judge | Esc: close
             </text>
           </box>
         </box>
@@ -357,9 +364,9 @@ export function SettingsView({ focused }: SettingsViewProps) {
 
       {/* Tool Configuration */}
       <box
-        borderStyle={focusedSection === "tools" ? "double" : "rounded"}
+        borderStyle="rounded"
+        borderColor={focusedSection === "tools" && focused ? theme.ui.borderFocused : theme.ui.border}
         padding={1}
-        title="Available Tools"
       >
         <box flexDirection="column" gap={1}>
           {allTools.map((toolName) => {
@@ -378,9 +385,9 @@ export function SettingsView({ focused }: SettingsViewProps) {
 
       {/* Data Management */}
       <box
-        borderStyle={focusedSection === "data" ? "double" : "rounded"}
+        borderStyle="rounded"
+        borderColor={focusedSection === "data" && focused ? theme.ui.borderFocused : theme.ui.border}
         padding={1}
-        title="Data Management"
       >
         <box flexDirection="column" gap={1}>
           <box flexDirection="row" gap={2}>
@@ -403,7 +410,7 @@ export function SettingsView({ focused }: SettingsViewProps) {
       {/* Help */}
       <box marginTop={1}>
         <text attributes={TextAttributes.DIM}>
-          Tab: switch sections | /: search models | Backspace: remove saved | d: remove judge | Enter: add judge
+          Tab: switch sections | /: search models | Enter: toggle judge | Backspace: remove saved | d: remove judge | Left/Right: navigate judges
         </text>
       </box>
     </box>

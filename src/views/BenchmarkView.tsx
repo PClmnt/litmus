@@ -682,9 +682,14 @@ export function BenchmarkView({
       )}
 
       {/* Prompt Input */}
-      <box borderStyle="rounded" title="Prompt" marginBottom={1} height={3}>
+      <box 
+        borderStyle="rounded" 
+        borderColor={focusedElement === "prompt" && focused ? theme.ui.borderFocused : theme.ui.border}
+        marginBottom={1} 
+        height={3}
+      >
         <input
-          placeholder="Enter your prompt... (paste image path or data URL to attach)"
+          placeholder="Enter your prompt..."
           value={prompt}
           onInput={setPrompt}
           focused={focusedElement === "prompt" && focused}
@@ -697,10 +702,9 @@ export function BenchmarkView({
         <box flexDirection="column" width={35} gap={1}>
           {/* Tools Selection */}
           <box
-            borderStyle={
-              focusedElement === "tools" && focused ? "double" : "rounded"
-            }
-            title="Tools (Space to toggle)"
+            borderStyle="rounded"
+            borderColor={focusedElement === "tools" && focused ? theme.ui.borderFocused : theme.ui.border}
+            title="Tools"
             padding={1}
             height={6}
           >
@@ -739,10 +743,9 @@ export function BenchmarkView({
 
         <box flexDirection="column" gap={1} flexGrow={1}>
           <box
-            borderStyle={
-              focusedElement === "models" && focused ? "double" : "rounded"
-            }
-            title="Models (Enter to add, / to search)"
+            borderStyle="rounded"
+            borderColor={focusedElement === "models" && focused ? theme.ui.borderFocused : theme.ui.border}
+            title="Models"
             padding={1}
             height={12}
           >
@@ -804,13 +807,13 @@ export function BenchmarkView({
             marginLeft: -45,
             marginTop: -10,
             border: true,
-            borderStyle: "double",
-            borderColor: theme.ui.borderFocused,
+            borderStyle: "rounded",
+            borderColor: theme.ui.border,
             backgroundColor: theme.bg.surface,
             padding: 1,
             zIndex: 100,
           }}
-          title="Search OpenRouter Models"
+          title="Search Models"
           titleAlignment="center"
         >
           <box flexDirection="column" gap={1} flexGrow={1}>
@@ -885,8 +888,8 @@ export function BenchmarkView({
             marginLeft: -35,
             marginTop: -3,
             border: true,
-            borderStyle: "double",
-            borderColor: theme.ui.borderFocused,
+            borderStyle: "rounded",
+            borderColor: theme.ui.border,
             backgroundColor: theme.bg.surface,
             padding: 1,
             zIndex: 100,

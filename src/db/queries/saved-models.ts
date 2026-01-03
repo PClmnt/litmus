@@ -18,6 +18,7 @@ type SavedModelRow = {
   input_modalities: string | null;
   output_modalities: string | null;
   pricing: string | null;
+  is_judge: number;
   added_at: number;
 };
 
@@ -50,6 +51,7 @@ const toSavedModel = (row: SavedModelRow): SavedModel => ({
   input_modalities: parseJsonArray(row.input_modalities),
   output_modalities: parseJsonArray(row.output_modalities),
   pricing: parseJsonRecord(row.pricing),
+  is_judge: row.is_judge,
   added_at: row.added_at,
 });
 
@@ -94,4 +96,25 @@ export function removeSavedModel(db: Database, modelId: string): boolean {
   const stmt = db.prepare("DELETE FROM saved_models WHERE model_id = ?");
   const result = stmt.run(modelId);
   return result.changes > 0;
+}
+
+export function setJudgeModel(db: Database, modelId: string, isJudge: boolean): void {
+  const stmt = db.prepare("UPDATE saved_models SET is_judge = ? WHERE model_id = ?");
+  stmt.run(isJudge ? 1 : 0, modelId);
+}
+
+export function listJudgeModels(db: Database): SavedModel[] {
+  const stmt = db.prepare(`
+    SELECT * FROM saved_models
+    WHERE is_judge = 1
+    ORDER BY added_at DESC
+  `);
+  const rows = stmt.all() as SavedModelRow[];
+  return rows.map(toSavedModel);
+}
+
+export function getJudgeModel(db: Database, modelId: string): SavedModel | null {
+  const stmt = db.prepare("SELECT * FROM saved_models WHERE model_id = ? AND is_judge = 1");
+  const row = stmt.get(modelId) as SavedModelRow | undefined;
+  return row ? toSavedModel(row) : null;
 }
